@@ -47,6 +47,10 @@ app.get('/', (req, res) => {
     console.log('Cookies ',req.cookies, cookieValue );
 
 });
+
+//
+// unit tests for testRequestCounter
+//
 app.get("/testRequestCounter", (req, res) => {
 
     rc.resetAll();
