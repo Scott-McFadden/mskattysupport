@@ -1,9 +1,12 @@
-const http = require('http');
+
 const express = require('express');
 const pino = require("pino");
 const expressPino = require("express-pino-logger");
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const requestCounterClass  = require("./requestCounter");
+
+
 const port = 3000;
 const shutDownTimeOut = 3000;
 const logDestination = './log';
@@ -17,12 +20,12 @@ if(process.env.NODE_ENV !== "development")
 else
     dest = pino.destination(1);
 
-
+const rc = new requestCounterClass();
 const app = express();
 const GracefulShutdownManager = require('@moebius/http-graceful-shutdown').GracefulShutdownManager;
 const logger = pino(dest);
 const expressLogger = expressPino({ logger });
-
+const startUpTime =  new Date();
 // express setup
 
 app.use(expressLogger);
@@ -31,20 +34,34 @@ app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
+
+    rc.inc("root");
     var cookieValue = 1;
     var cookies = req.cookies;
-    if (cookies.testcookie1 !== undefined)
-        cookieValue = parseInt(cookies.testcookie1) +1;
+
+    cookieValue = parseInt(cookies["testcookie1"]) +1 | 1;
 
     res.cookie("testcookie1", cookieValue);
     res.send("Hi!");
 
     console.log('Cookies ',req.cookies, cookieValue );
+
 });
 
 app.get("/healthCheck", (req, res) => {
-    res.send("ok");
+
+    rc.inc("healthCheck");
+    var now = new Date();
+    res.json(  {
+        status: "ok",
+        currentTime: now.toUTCString(),
+        startUpTime: startUpTime.toUTCString(),
+        minutesUp: Math.abs(Math.round((now.getTime() - startUpTime.getTime())/1000/60)),
+        counters: rc.get()
+    }   );
+
     logger.info(`healthCheck request from ${ req.headers['x-forwarded-for'] || req.connection.remoteAddress}`);
+
 });
 
 app.get('/stopServer', (req, res) => {
