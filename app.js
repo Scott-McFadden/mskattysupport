@@ -5,7 +5,8 @@ const expressPino = require("express-pino-logger");
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const requestCounterClass  = require("./requestCounter");
-
+const path = require('path');
+const axios = require('axios');
 
 const port = 3000;
 const shutDownTimeOut = 3000;
@@ -26,12 +27,20 @@ const GracefulShutdownManager = require('@moebius/http-graceful-shutdown').Grace
 const logger = pino(dest);
 const expressLogger = expressPino({ logger });
 const startUpTime =  new Date();
-// express setup
 
+// express setup
+app.set('view engine', 'ejs')
 app.use(expressLogger);
 app.use(bodyParser.json()) // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 app.use(cookieParser());
+app.use(express.static('./public'));
+app.set('views', path.join(__dirname, 'views'));
+
+
+
+
+// pages
 
 app.get('/', (req, res) => {
 
@@ -98,6 +107,49 @@ app.get('/stopServer', (req, res) => {
         logger.info('Server is gracefully terminated');
     });
 });
+
+// weather
+
+app.get('/weather', function (req, res)   {
+    res.render('index', { title: "weather"});
+});
+
+app.post('/weather', function (req, res) {
+
+    let city= req.body.city + ", us";
+    axios({
+        "method":"GET",
+        "url":"https://community-open-weather-map.p.rapidapi.com/weather",
+        "headers":{
+            "content-type":"application/octet-stream",
+            "x-rapidapi-host":"community-open-weather-map.p.rapidapi.com",
+            "x-rapidapi-key":"6ec9f5b9e5msha2c42893f24ac54p1c631cjsncf7f2bd18ce2",
+            "useQueryString":true
+        },"params":{
+            "q":city,
+            "units":"Imperial"
+        }
+    })
+        .then((response)=>{
+            console.log("weatherapi response", response.data)
+            let weather =  response.data
+            if(weather.main === undefined){
+                res.render('index', {weather: null, error: 'Error, please try again'});
+            } else {
+                let weatherText = `It's ${weather.main.temp} degrees in ${weather.name}!`;
+                res.render('index', {weather: weatherText, error: null});
+            }
+
+        })
+        .catch((error)=>{
+            console.log("weatherapi error",error)
+            res.render('index', {weather: null, error: 'Error, please try again'});
+        })
+});
+
+
+
+// start server
 
 const server = app.listen(port, ()=> {
     logger.info(`server started on ${port}`);
