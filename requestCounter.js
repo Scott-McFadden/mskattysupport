@@ -43,7 +43,7 @@ class requestCounterClass
 
     getNamed(name)
     {
-        return this.counter[name] ?? 0;
+        return this.counter[name] || 0;
     }
 
 }

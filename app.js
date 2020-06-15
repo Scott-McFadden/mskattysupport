@@ -36,15 +36,38 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
 
     rc.inc("root");
-    var cookieValue = 1;
+
     var cookies = req.cookies;
 
-    cookieValue = parseInt(cookies["testcookie1"]) +1 | 1;
+    var cookieValue = parseInt(cookies["testcookie1"]) +1 | 1;
 
     res.cookie("testcookie1", cookieValue);
     res.send("Hi!");
 
     console.log('Cookies ',req.cookies, cookieValue );
+
+});
+app.get("/testRequestCounter", (req, res) => {
+
+    rc.resetAll();
+    rc.inc("test1");
+    rc.inc("test1");
+    rc.inc("test1");
+    rc.inc("test1");
+    rc.inc("test2");
+    rc.inc("test2");
+    var test1 = rc.getNamed("test1");
+    var test2 = rc.getNamed("test2");
+
+    console.log("Test1 should be 4, actual: ", test1);
+    console.log("Test2 should be 2, actual: ", test2);
+    console.log("init test - test1: ", test1, "test2", test2, "all", rc.get());
+    console.log("resetting test1");
+    rc.reset("test1");
+    test1 = rc.getNamed("test1");
+    console.log("Test1 should be 0 now, actual: ", test1);
+    console.log("clear test1 - test1: ", test1, "test2", test2, "all", rc.get());
+    res.json(rc.counter);
 
 });
 
