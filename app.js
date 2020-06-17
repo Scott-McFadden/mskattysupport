@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
     var cookieValue = parseInt(cookies["testcookie1"]) +1 | 1;
 
     res.cookie("testcookie1", cookieValue);
-    res.send("Hi!");
+    res.render('index');
 
     console.log('Cookies ',req.cookies, cookieValue );
 
@@ -111,11 +111,12 @@ app.get('/stopServer', (req, res) => {
 // weather
 
 app.get('/weather', function (req, res)   {
-    res.render('index', { title: "weather"});
+    rc.inc("weather_get");
+    res.render('weather',  {weather: null, error: null  });
 });
 
 app.post('/weather', function (req, res) {
-
+    rc.inc("weather_post");
     let city= req.body.city + ", us";
     axios({
         "method":"GET",
@@ -134,10 +135,10 @@ app.post('/weather', function (req, res) {
             console.log("weatherapi response", response.data)
             let weather =  response.data
             if(weather.main === undefined){
-                res.render('index', {weather: null, error: 'Error, please try again'});
+                res.render('weather', {weather: null, error: 'Error, please try again'});
             } else {
                 let weatherText = `It's ${weather.main.temp} degrees in ${weather.name}!`;
-                res.render('index', {weather: weatherText, error: null});
+                res.render('weather', {weather: weatherText, error: null});
             }
 
         })
@@ -147,8 +148,42 @@ app.post('/weather', function (req, res) {
         })
 });
 
+// swatch list
 
+app.get("/swatchlist", async (req, res)=> {
+    rc.inc("swatchlist");
+    let swatches = await getSwatches();
+    res.render('swatchList', {swatches : swatches});
+} );
+app.get("/swatchReorder", async (req, res)=> {
+    rc.inc("swatchReorder");
+    let swatches = await getSwatches() ;
 
+    for(var a=0; a<swatches.length; a++)
+    {
+        swatches[a].id = a+1;
+        if (swatches[a].cat.includes('prem'))
+            swatches[a].id = "P"+(a+1).toString();
+    }
+    res.json(swatches);
+});
+
+async function getSwatches(){
+
+    let response = await axios.get("http://www.mskatty.com/data/swatches.json");
+    console.log(response.data.swatches)
+    return sort_by_key(response.data.swatches || [], 'name') ;
+}
+
+ function sort_by_key(array, key)
+{  console.log("sort", key, array[0]);
+    return array.sort(function(a, b)
+    {
+        var x = a[key];
+        var y = b[key];
+        return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+    });
+}
 // start server
 
 const server = app.listen(port, ()=> {
