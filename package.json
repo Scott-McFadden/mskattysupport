@@ -25,7 +25,7 @@
     "lodash": "^4.17.15",
     "pino": "^6.3.2",
     "popper": "^1.0.1",
-    "pug": "^3.0.0"
+    "pug": "^3.0.1"
   },
   "devDependencies": {
     "pino-pretty": "^4.0.0"
